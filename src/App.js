@@ -8,24 +8,30 @@ import MyButton from "./components/UI/button/MyButton";
 import { usePosts } from "./components/hooks/usePosts";
 import PostService from "./components/API/PostService";
 import Loader from "./components/UI/Loader/Loader";
+import { useFetching } from "./components/hooks/useFeching";
+import { getPageCount, getPagesArray } from "./components/utils/pages";
+import Pagination from "./components/UI/pagination/Pagination";
 
 function App() {
   const [posts, setPosts] = useState([]);
   const [filter, setFilter] = useState({ sort: "", query: "" });
   const [modal, setModal] = useState(false);
+  const [totalPages, setTotalPages] = useState(0);
+  const [limit, setLimit] = useState(10);
+  const [page, setPage] = useState(1);
   const sortedAndSearchedPosts = usePosts(posts, filter.query, filter.sort);
-  const [isLoading, setIsLoading] = useState(false);
+  const [fetchPosts, isLoading, postError] = useFetching(
+    async (limit, page) => {
+      const response = await PostService.getAll(limit, page);
+      setPosts(response.data);
+      const totalCount = response.headers["x-total-count"];
+      setTotalPages(getPageCount(totalCount, limit));
+    }
+  );
 
-  useEffect(() => {}, []);
-
-  async function fetchPosts() {
-    setIsLoading(true);
-    setTimeout(async () => {
-      const post = await PostService.getAll();
-      setPosts(post);
-      setIsLoading(false);
-    }, 1000);
-  }
+  useEffect(() => {
+    fetchPosts(limit, page);
+  }, []);
 
   const createNewPost = (newPost) => {
     setPosts([...posts, newPost]);
@@ -34,6 +40,11 @@ function App() {
 
   const removePost = (post) => {
     setPosts(posts.filter((p) => p.id !== post.id));
+  };
+
+  const onChange = (page) => {
+    setPage(page);
+    fetchPosts(limit, page);
   };
 
   return (
@@ -48,6 +59,7 @@ function App() {
 
       <hr style={{ margin: "15px 0" }} />
       <PostFilter filter={filter} setFilter={setFilter} />
+      {postError && <h1>Поизошла ошибка ${postError}!!!</h1>}
       {isLoading ? (
         <div
           style={{
@@ -65,6 +77,8 @@ function App() {
           title="Список постов JS"
         />
       )}
+
+      <Pagination totalPages={totalPages} page={page} onChange={onChange} />
     </div>
   );
 }

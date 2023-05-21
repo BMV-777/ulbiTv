@@ -4,12 +4,12 @@ export const useFetching = (callback) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const fetching = async () => {
+  const fetching = async (...args) => {
     try {
       setIsLoading(true);
-      await callback();
+      await callback(...args);
     } catch (error) {
-      setError(error.messages);
+      setError(error.message);
     } finally {
       setIsLoading(false);
     }
